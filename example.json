@@ -1,0 +1,123 @@
+{
+  "AWSTemplateFormatVersion":"2010-09-09",
+  "Transform":"AWS::Serverless-2016-10-31",
+  "Description":"Simple backend example",
+  "Parameters":{
+    "AWSRegion":{
+      "Type":"String",
+      "Description":"The region in wich this API will be deployed"
+    },
+    "DynamoDBTableName":{
+      "Type":"String",
+      "Description":"The DynamoDB table name to read data from"
+    },
+    "Environment":{
+      "Type":"String",
+      "Description":"This stacks environment"
+    }
+  },
+  "Resources":{
+    "API":{
+      "Type":"AWS::Serverless::Api",
+      "Properties":{
+        "StageName": {"Ref": "Environment"},
+        "DefinitionBody":{
+          "swagger": "2.0",
+          "info": {
+            "version": "0.0.1",
+            "title": "Backend Example"
+          },
+          "paths":{
+            "/rides":{
+              "get":{
+                "produces":[
+                  "application/json"
+                ],
+                "responses":{
+                  "200":{
+                    "description":"200 response"
+                  }
+                },
+                "x-amazon-apigateway-integration":{
+                  "uri":{
+                    "Fn::Sub":"arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaListRides.Arn}/invocations"
+                  },
+                  "responses":{
+                    "default":{
+                      "statusCode":"200"
+                    }
+                  },
+                  "passthroughBehavior":"when_no_match",
+                  "httpMethod":"POST",
+                  "contentHandling":"CONVERT_TO_TEXT",
+                  "type":"aws_proxy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "LambdaListRides":{
+      "Type":"AWS::Serverless::Function",
+      "Properties":{
+        "Runtime":"python3.8",
+        "InlineCode": {
+          "Fn::Join": ["", [
+            "import json\nimport boto3\ndef lambda_handler(event, context):\n\tdynamodb = boto3.resource('dynamodb', region_name=\"us-east-1\")\n\ttable = dynamodb.Table('",
+            {"Ref":"DynamoDBTableName"},
+            "')\n\tresults = table.scan()\n\tresponse = {\"body\": {},\"headers\": {'Content-Type': 'application/json; charset=utf-8'},\"statusCode\": 200}\n\tresponse['body'] = json.dumps(results['Items'])\n\treturn response\n"
+          ]]
+        },
+        "Handler":"index.lambda_handler",
+        "Policies":[
+          {
+            "DynamoDBReadPolicy":{
+              "TableName": {
+                "Ref":"DynamoDBTableName"
+              }
+            }
+          }
+        ],
+        "Events":{
+          "ListRides":{
+            "Type":"Api",
+            "Properties":{
+              "RestApiId":{
+                "Ref":"API"
+              },
+              "Path":"/rides",
+              "Method":"get"
+            }
+          }
+        },
+        "Tags":{
+          "version":"0"
+        }
+      }
+    }
+  },
+  "Outputs":{
+    "APIEndpoint":{
+      "Description":"The endpoint for the API created",
+      "Value":{
+        "Fn::Join":[
+          "",
+          [
+            {
+              "Ref":"API"
+            },
+            ".execute-api.",
+            {
+              "Ref":"AWSRegion"
+            },
+            ".amazonaws.com/",
+            {
+              "Ref":"Environment"
+            }
+          ]
+        ]
+      }
+    }
+  }
+}
