@@ -28,7 +28,7 @@
             "title": "Backend Example"
           },
           "paths":{
-            "/rides":{
+            "/books":{
               "get":{
                 "produces":[
                   "application/json"
@@ -40,7 +40,7 @@
                 },
                 "x-amazon-apigateway-integration":{
                   "uri":{
-                    "Fn::Sub":"arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaListRides.Arn}/invocations"
+                    "Fn::Sub":"arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaListBooks.Arn}/invocations"
                   },
                   "responses":{
                     "default":{
@@ -58,7 +58,7 @@
         }
       }
     },
-    "LambdaListRides":{
+    "LambdaListBooks":{
       "Type":"AWS::Serverless::Function",
       "Properties":{
         "Runtime":"python3.8",
@@ -80,13 +80,13 @@
           }
         ],
         "Events":{
-          "ListRides":{
+          "ListBooks":{
             "Type":"Api",
             "Properties":{
               "RestApiId":{
                 "Ref":"API"
               },
-              "Path":"/rides",
+              "Path":"/books",
               "Method":"get"
             }
           }
